@@ -10,12 +10,11 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
  *   AI_PROVIDER=openai      → OpenAI GPT     (requires OPENAI_API_KEY, install @langchain/openai)
  *   AI_PROVIDER=anthropic   → Anthropic Claude (requires ANTHROPIC_API_KEY, install @langchain/anthropic)
  */
-export function getLLM(): BaseChatModel {
+export async function getLLM(): Promise<BaseChatModel> {
   switch (env.AI_PROVIDER) {
     case "openai": {
       // Install first: pnpm add @langchain/openai
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { ChatOpenAI } = require("@langchain/openai");
+      const { ChatOpenAI } = await import("@langchain/openai");
       if (!env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is required when AI_PROVIDER=openai");
       return new ChatOpenAI({
         model: env.AI_MODEL ?? "gpt-4o-mini",
@@ -26,8 +25,7 @@ export function getLLM(): BaseChatModel {
 
     case "anthropic": {
       // Install first: pnpm add @langchain/anthropic
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { ChatAnthropic } = require("@langchain/anthropic");
+      const { ChatAnthropic } = await import("@langchain/anthropic");
       if (!env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is required when AI_PROVIDER=anthropic");
       return new ChatAnthropic({
         model: env.AI_MODEL ?? "claude-3-5-sonnet-20241022",

@@ -8,7 +8,7 @@ export const errorMiddleware: ErrorRequestHandler = (
   res,
   _next
 ) => {
-  console.error(error);
+  console.error("[ERROR MIDDLEWARE]", error instanceof Error ? error.stack : error);
 
   if (error instanceof ZodError) {
     res.status(400).json({

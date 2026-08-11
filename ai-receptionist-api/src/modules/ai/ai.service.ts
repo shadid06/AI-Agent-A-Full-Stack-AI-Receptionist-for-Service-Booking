@@ -1,8 +1,16 @@
-import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
+import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { prisma } from "../../lib/prisma.js";
 import { getLLM } from "./ai.llm.js";
 import { buildTools } from "./ai.tools.js";
+
+const timestamp = Date.now();
+
+const dhakaTime = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'Asia/Dhaka',
+  dateStyle: 'medium',
+  timeStyle: 'long'
+}).format(timestamp);
 
 const SYSTEM_INSTRUCTION = `
 You are an AI receptionist for a real business.
@@ -25,6 +33,7 @@ Your job:
 - If the user gives a date without a timezone, assume the business timezone.
 - Do not provide medical, legal, or financial advice. For clinics, hospitals, or law firms, act only as a receptionist and booking assistant.
 - If a request is outside booking/receptionist capabilities, say so and offer to help with supported booking tasks.
+- important: today is ${dhakaTime}
 `;
 
 type ChatInput = {
@@ -45,7 +54,7 @@ export async function chat(input: ChatInput) {
   });
 
   // 2. Convert DB messages to LangChain message format
-  const history = previousMessages.map((msg) =>
+  const history = previousMessages.map((msg: any) =>
     msg.role === "assistant"
       ? new AIMessage(msg.content)
       : new HumanMessage(msg.content)
@@ -62,19 +71,23 @@ export async function chat(input: ChatInput) {
   });
 
   // 4. Build the agent with the correct LLM + tools for this business
-  const llm = getLLM();
+  const model = await getLLM();
   const tools = buildTools(input.businessId);
 
+  // createReactAgent is the correct LangGraph API — no "createAgent" in langchain
   const agent = createReactAgent({
-    llm,
+    llm: model,
     tools,
-    // System prompt injected as first message
-    stateModifier: new SystemMessage(SYSTEM_INSTRUCTION)
+    prompt: SYSTEM_INSTRUCTION
   });
 
-  // 5. Run the agent
+  // 5. Run the agent — pass system message + history + new user message
   const result = await agent.invoke({
-    messages: [...history, new HumanMessage(input.message)]
+    messages: [
+      new SystemMessage(SYSTEM_INSTRUCTION),
+      ...history,
+      new HumanMessage(input.message)
+    ]
   });
 
   // 6. Extract the last AI message as the response
