@@ -1,442 +1,273 @@
 # AI Receptionist API
 
-An open-source, multi-industry AI receptionist backend built to demonstrate a production-style AI agent architecture.
+An open-source, multi-industry AI receptionist backend built to demonstrate a production-grade ReAct AI agent architecture using LangChain, LangGraph, TypeScript, Express, Prisma ORM, and PostgreSQL.
 
-## What it can do
+---
 
-The same backend can power:
+## 🚀 What It Can Do & Key Developed Functionalities
 
-- Hotel booking
-- Salon booking
-- Clinic appointment booking
-- Spa booking
-- Hospital appointment booking
-- Law-firm consultation booking
-- Personal meeting booking
-- Other appointment/reservation businesses
+The same backend dynamically powers reception and booking workflows for multiple industries:
 
-The AI agent uses **Gemini 2.5 Flash** and function calling to execute real backend tools.
+- 🏨 **Hotel booking** (Rooms & reservations)
+- 💇 **Salon & Barber booking** (Stylists, haircuts, treatments)
+- 🩺 **Clinic & Healthcare appointment booking** (Doctors, specialists)
+- 💆 **Spa & Wellness booking** (Massages, therapies)
+- 🏥 **Hospital appointment booking** (Departments & consultations)
+- ⚖️ **Law Firm consultation booking** (Attorneys, legal advise)
+- 📅 **Personal meeting booking** (Consultants, coaches)
+- 🏢 **Other appointment & service-based businesses**
 
-### Current AI tools
+### 🧠 Core Developed Capabilities
 
-1. `search_services`
-2. `get_availability`
-3. `create_booking`
-4. `get_booking`
-5. `update_booking`
-6. `cancel_booking`
+1. **ReAct Agent Architecture (LangGraph)**: Built with `@langchain/langgraph` ReAct agents (`createReactAgent`) that reason, select tools, inspect parameters, execute database operations, and return structured answers.
+2. **Multi-Provider LLM Abstraction**: Supports seamless switching between AI models via environment variables (`gemini`, `openai`, `anthropic`).
+3. **Persisted Session Memory**: Full conversation history stored in PostgreSQL, restoring state across chat turns.
+4. **Bilingual AI Communication**: Auto-detects and responds in English and Bangla.
+5. **Real-time Slot Availability Calculation**: Computes valid booking slots based on staff schedules, existing reservations, service duration, and business operating hours.
+6. **Robust Multi-Tenant Support**: Isolate business data and configurations via `x-business-id` headers.
+7. **Complete Administrative REST Suite**: CRUD management APIs for Businesses, Services, Staff Members & Weekly Schedules, and Bookings.
 
-The model does not directly access PostgreSQL. It asks for a tool, the Node.js application validates and executes it, then the result is returned to Gemini.
+---
 
-## Architecture
+## 🛠️ Developed AI Tools (LangChain Tools)
+
+The AI Agent is equipped with **9 native LangChain tools** that bind directly to database services:
+
+| # | Tool Name | Description | Parameters |
+|---|---|---|---|
+| 1 | `search_services` | Search active services offered by the business when vague service names are requested. | `query` (optional string) |
+| 2 | `get_availability` | Computes available appointment time slots for a service on a given date (and optional staff). | `serviceId`, `date` (YYYY-MM-DD), `staffId` (optional) |
+| 3 | `create_booking` | Creates a verified booking after slot confirmation and customer detail collection. | `serviceId`, `customerName`, `customerPhone`, `startAt` (ISO), `staffId` (opt), `customerEmail` (opt), `notes` (opt) |
+| 4 | `get_booking` | Retrieves an existing booking record by booking ID. | `bookingId` |
+| 5 | `update_booking` | Reschedules or modifies an existing booking with availability validation. | `bookingId`, `startAt` (opt ISO), `staffId` (opt), `notes` (opt) |
+| 6 | `cancel_booking` | Cancels an active booking after confirmation. | `bookingId` |
+| 7 | `search_staff` | Searches active staff members by name or role (`GENERAL`, `DOCTOR`, `LAWYER`, `THERAPIST`, `STYLIST`, `RECEPTIONIST`, `OTHER`). | `name` (optional), `role` (optional) |
+| 8 | `get_staff_availability` | Fetches a specific staff member's weekly recurring schedule and working hours. | `staffId` |
+| 9 | `list_bookings` | Lists and filters bookings by date or status (`PENDING`, `CONFIRMED`, `CANCELLED`). | `date` (optional YYYY-MM-DD), `status` (optional enum) |
+
+> ⚠️ **Design Principle**: The LLM is **never** the source of truth. It cannot invent slots, prices, staff availability, or confirmation IDs. All data is dynamically validated against PostgreSQL via Prisma.
+
+---
+
+## 🏗️ Architecture
 
 ```text
-Next.js / Flutter / Phone / Voice UI
-                |
-                v
-        Express REST API
-                |
-        +-------+--------+
-        |                |
-        v                v
-   Gemini 2.5 Flash   PostgreSQL
-        |
-        v
-  Function Calling
-        |
-        v
- Booking Tool Layer
-        |
-        +--> search services
-        +--> availability
-        +--> create booking
-        +--> get booking
-        +--> update booking
-        +--> cancel booking
+       Next.js Frontends / Mobile Apps / Voice Agents / Webhooks
+                                  |
+                                  v
+                      Express 5 REST API Router
+                                  |
+                  +---------------+---------------+
+                  |                               |
+                  v                               v
+    LangChain / LangGraph ReAct Agent       PostgreSQL (Prisma ORM)
+                  |                               |
+      +-----------+-----------+                   |
+      |                       |                   |
+      v                       v                   v
+ Multi-LLM Provider      9 Native AI Tools <--> Booking & Staff Logic
+ [Gemini / OpenAI /       (Slot Math, CRUD,      (DB Validation & 
+   Anthropic]               Staff Schedule)        Transactions)
 ```
 
-## Tech stack
+---
 
-- Node.js 20+
-- TypeScript
-- Express 5
-- Gemini 2.5 Flash
-- `@google/genai`
-- Prisma ORM 6
-- PostgreSQL
-- Zod
-- Helmet
-- CORS
-- Morgan
+## 💻 Tech Stack
 
-Google's current JavaScript SDK is `@google/genai`; the older `@google/generative-ai` package is deprecated. Gemini 2.5 Flash supports function calling and is intended for low-latency/agentic use cases.
+- **Runtime & Language**: Node.js (>=20.9.0), TypeScript 5.9
+- **Web Framework**: Express 5.1
+- **AI Framework**: LangChain (`@langchain/core`, `@langchain/langgraph`), `@langchain/google-genai`, `@langchain/openai`, `@langchain/anthropic`
+- **Database & ORM**: PostgreSQL, Prisma ORM 6.16
+- **Validation**: Zod 4.0
+- **Security & Utilities**: Helmet 8.1, CORS 2.8, Morgan 1.10, Dotenv 17.2, tsx
 
-## 1. PostgreSQL
+---
 
-Your PostgreSQL is installed locally. Create a database called:
+## 🗄️ Database Schemas & Data Models
+
+The PostgreSQL database powered by Prisma ORM consists of 7 models:
+
+- **Business**: Multi-tenant entity with `industry` enum (`HOTEL`, `SALON`, `CLINIC`, `SPA`, `HOSPITAL`, `LAW_FIRM`, `PERSONAL`, `OTHER`), timezone, and contact metadata.
+- **Service**: Business services with `durationMin`, `price` (Decimal), and active state.
+- **Staff**: Team members assigned to roles (`DOCTOR`, `LAWYER`, `STYLIST`, etc.).
+- **StaffAvailability**: Weekly schedule matrix (`dayOfWeek` 0-6, `startTime`, `endTime`).
+- **Customer**: Customer directory indexed by `[businessId, phone]`.
+- **Booking**: Central booking registry tracking `startAt`, `endAt`, `status` (`PENDING`, `CONFIRMED`, `CANCELLED`, `COMPLETED`, `NO_SHOW`), and `source` (`AI`, `WEB`, `PHONE`, `MANUAL`).
+- **Conversation**: Session history log mapping user and assistant messages per business session.
+
+---
+
+## 🚦 Getting Started
+
+### 1. Prerequisites & PostgreSQL Setup
+
+Create a PostgreSQL database locally:
 
 ```sql
 CREATE DATABASE ai_receptionist;
 ```
 
-If `psql` is not available in PATH, use pgAdmin or the `psql.exe` inside your PostgreSQL installation.
-
-Your `.env` should look similar to:
+Configure your `.env` file (copied from `.env.example`):
 
 ```env
+NODE_ENV=development
+PORT=4000
 DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/ai_receptionist?schema=public"
+
+# AI Provider Configuration ("gemini" | "openai" | "anthropic")
+AI_PROVIDER="gemini"
+AI_MODEL="gemini-2.5-flash"
+GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+
+# Optional Providers
+# OPENAI_API_KEY="sk-..."
+# ANTHROPIC_API_KEY="sk-ant-..."
+
+DEFAULT_BUSINESS_ID=""
+DEFAULT_TIMEZONE="Asia/Dhaka"
+CORS_ORIGIN="http://localhost:3000"
 ```
 
-The `E:\postgre-install` folder is an installation location, not the database connection string itself. The connection uses PostgreSQL's host, port, username, password and database name.
-
-## 2. Install
+### 2. Installation & Migrations
 
 ```bash
+# Install dependencies
 npm install
-```
 
-Copy:
-
-```text
-.env.example
-```
-
-to:
-
-```text
-.env
-```
-
-Then add your Gemini API key:
-
-```env
-GEMINI_API_KEY="YOUR_KEY"
-GEMINI_MODEL="gemini-2.5-flash"
-```
-
-Keep this key on the Node.js server. Never put it in Next.js browser code.
-
-## 3. Prisma
-
-Generate Prisma Client:
-
-```bash
+# Generate Prisma Client
 npm run prisma:generate
-```
 
-Create the first migration:
-
-```bash
+# Run database migrations
 npm run prisma:migrate -- --name init
-```
 
-Seed demo data:
-
-```bash
+# Seed initial multi-industry demo data
 npm run db:seed
 ```
 
-The seed command prints:
+Copy the generated `BUSINESS_ID` from the seed output into your `.env` file under `DEFAULT_BUSINESS_ID`.
 
-```text
-BUSINESS_ID=...
-```
-
-Put that value into:
-
-```env
-DEFAULT_BUSINESS_ID="..."
-```
-
-## 4. Start
-
-Development:
+### 3. Running the Server
 
 ```bash
+# Development mode with hot-reload
 npm run dev
-```
 
-Production build:
-
-```bash
+# Production build & start
 npm run build
 npm start
+
+# Type check
+npm run check
 ```
 
-Health check:
+---
 
-```text
-GET http://localhost:4000/health
-```
+## 📡 Complete REST API Endpoints
 
-## 5. Test the AI agent
+### 🩺 Health & Diagnostics
+- `GET /health` — Check server status & health.
 
-All business-scoped requests use:
+### 🤖 AI Agent Chat Endpoint
+- `POST /api/v1/ai/chat` — Send messages to the ReAct AI Agent.
+  - **Headers**: `x-business-id: BUSINESS_ID`
+  - **Body**: `{ "sessionId": "string", "message": "string" }`
 
-```http
-x-business-id: YOUR_BUSINESS_ID
-```
+---
 
-Example:
+### 📅 Booking & Availability API (`/api/v1/bookings`)
+All endpoints accept header `x-business-id: BUSINESS_ID`.
 
-```bash
-curl -X POST http://localhost:4000/api/v1/ai/chat ^
-  -H "Content-Type: application/json" ^
-  -H "x-business-id: YOUR_BUSINESS_ID" ^
-  -d "{\"sessionId\":\"demo-session-1\",\"message\":\"I want a relaxation massage tomorrow afternoon.\"}"
-```
+| Method | Endpoint | Description | Query / Body Params |
+|---|---|---|---|
+| `GET` | `/api/v1/bookings/services` | Search active services | `?q=massage` |
+| `GET` | `/api/v1/bookings/availability` | Calculate available time slots | `?serviceId=ID&date=YYYY-MM-DD&staffId=OPTIONAL` |
+| `GET` | `/api/v1/bookings` | List bookings | `?date=YYYY-MM-DD&status=CONFIRMED` |
+| `POST` | `/api/v1/bookings` | Create new booking | `{ "serviceId", "customerName", "customerPhone", "startAt", "staffId", "notes" }` |
+| `GET` | `/api/v1/bookings/:bookingId` | Get single booking | — |
+| `PATCH` | `/api/v1/bookings/:bookingId` | Update booking | `{ "startAt", "staffId", "notes" }` |
+| `DELETE` | `/api/v1/bookings/:bookingId` | Cancel booking | — |
 
-On PowerShell, this can also be easier:
+---
+
+### 🏢 Business Management API (`/api/v1/businesses`)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/v1/businesses` | List all businesses |
+| `POST` | `/api/v1/businesses` | Create a new business entity |
+| `GET` | `/api/v1/businesses/:businessId` | Get business details |
+| `PATCH` | `/api/v1/businesses/:businessId` | Update business metadata |
+| `DELETE` | `/api/v1/businesses/:businessId` | Delete a business |
+
+---
+
+### 💇 Service Management API (`/api/v1/services`)
+Header: `x-business-id: BUSINESS_ID`
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/v1/services` | List active business services |
+| `POST` | `/api/v1/services` | Create new service (duration, price, name) |
+| `GET` | `/api/v1/services/:serviceId` | Get service details |
+| `PATCH` | `/api/v1/services/:serviceId` | Update service details |
+| `DELETE` | `/api/v1/services/:serviceId` | Delete a service |
+
+---
+
+### 👨‍⚕️ Staff & Schedule Management API (`/api/v1/staffs`)
+Header: `x-business-id: BUSINESS_ID`
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/v1/staffs` | List business staff members |
+| `POST` | `/api/v1/staffs` | Add staff member & set weekly schedules |
+| `GET` | `/api/v1/staffs/:staffId` | Get staff details & schedule |
+| `PATCH` | `/api/v1/staffs/:staffId` | Update staff details & schedules |
+| `DELETE` | `/api/v1/staffs/:staffId` | Remove staff member |
+
+---
+
+## 🧪 Testing the AI Agent
+
+### Example Chat Request (PowerShell)
 
 ```powershell
 $body = @{
-  sessionId = "demo-session-1"
-  message = "I want a relaxation massage tomorrow afternoon."
+  sessionId = "session-101"
+  message   = "Hi, I need a consultation with Dr. Smith tomorrow afternoon."
 } | ConvertTo-Json
 
 Invoke-RestMethod `
   -Uri "http://localhost:4000/api/v1/ai/chat" `
   -Method POST `
   -Headers @{
-    "Content-Type" = "application/json"
+    "Content-Type"  = "application/json"
     "x-business-id" = "YOUR_BUSINESS_ID"
   } `
   -Body $body
 ```
 
-The agent should search the service, ask for missing details, check availability, and only create a booking after enough information is collected.
-
-## REST endpoints
-
-### Health
-
-```http
-GET /health
-```
-
-### Business
-
-```http
-GET /api/v1/businesses/:businessId
-```
-
-### Services
-
-```http
-GET /api/v1/bookings/services
-x-business-id: BUSINESS_ID
-```
-
-Optional:
-
-```http
-GET /api/v1/bookings/services?q=massage
-```
-
-### Availability
-
-```http
-GET /api/v1/bookings/availability?serviceId=SERVICE_ID&date=2026-08-11
-x-business-id: BUSINESS_ID
-```
-
-Optional staff:
-
-```text
-&staffId=STAFF_ID
-```
-
-### Create booking
-
-```http
-POST /api/v1/bookings
-x-business-id: BUSINESS_ID
-Content-Type: application/json
-```
-
-Body:
-
-```json
-{
-  "serviceId": "SERVICE_ID",
-  "customerName": "John Doe",
-  "customerPhone": "+8801700000000",
-  "customerEmail": "john@example.com",
-  "startAt": "2026-08-11T10:00:00.000Z",
-  "notes": "First visit"
-}
-```
-
-### List bookings
-
-```http
-GET /api/v1/bookings
-x-business-id: BUSINESS_ID
-```
-
-Filter by date:
-
-```text
-?date=2026-08-11
-```
-
-### Get booking
-
-```http
-GET /api/v1/bookings/:bookingId
-x-business-id: BUSINESS_ID
-```
-
-### Update booking
-
-```http
-PATCH /api/v1/bookings/:bookingId
-x-business-id: BUSINESS_ID
-Content-Type: application/json
-```
-
-Example:
-
-```json
-{
-  "startAt": "2026-08-11T11:00:00.000Z"
-}
-```
-
-### Cancel booking
-
-```http
-DELETE /api/v1/bookings/:bookingId
-x-business-id: BUSINESS_ID
-```
-
-## Important design decision
-
-The LLM is **not** the source of truth.
-
-For example, if the user says:
-
-> "Book me tomorrow at 5 PM."
-
-Gemini should not simply answer:
-
-> "Done."
-
-It must:
-
-1. Identify the service.
-2. Ask for missing customer information.
-3. Call `get_availability`.
-4. Read the actual available slots from PostgreSQL.
-5. Confirm the selected slot.
-6. Call `create_booking`.
-7. Only then tell the customer the booking is confirmed.
-
-The same principle applies to update and cancellation.
-
-## Why this architecture is recruiter-friendly
-
-This project demonstrates more than "I called an LLM API."
-
-It demonstrates:
-
-- LLM integration
-- Agent loop
-- Function/tool calling
-- Tool schema design
-- Business logic separation
-- Zod validation
-- TypeScript
-- REST API design
-- PostgreSQL data modeling
-- Prisma ORM
-- Transaction/conflict thinking
-- Multi-business architecture
-- Conversation persistence
-- AI safety rules
-- Extensible booking domain
-
-## Next roadmap
-
-### Phase 1 — Current
-
-- Gemini agent
-- Tool calling
-- PostgreSQL
-- Prisma
-- Generic booking domain
-- CRUD
-- Conversation history
-
-### Phase 2 — Next.js
-
-Build:
-
-- Customer chat UI
-- Admin dashboard
-- Service management
-- Staff management
-- Booking calendar
-- Conversation viewer
-- AI tool execution logs
-
-### Phase 3 — Voice
-
-Add:
-
-```text
-Browser microphone
-      |
-      v
-Speech-to-text
-      |
-      v
-Gemini agent
-      |
-      v
-Booking tools
-      |
-      v
-Text-to-speech
-```
-
-### Phase 4 — Phone receptionist
-
-Integrate a telephony provider so customers can call the business and talk to the receptionist.
-
-### Phase 5 — Production
-
-Add:
-
-- Authentication
-- Role-based access
-- Rate limiting
-- Audit logs
-- Redis
-- Background jobs
-- Notifications
-- Email/SMS/WhatsApp
-- Payment/deposit support
-- Business-specific policies
-- Observability
-- Automated tests
-- Docker
-- CI/CD
-
-## Open-source recommendation
-
-Before publishing to GitHub:
+### Example Chat Request (cURL)
 
 ```bash
-git init
-git add .
-git commit -m "feat: initial AI receptionist backend"
+curl -X POST http://localhost:4000/api/v1/ai/chat \
+  -H "Content-Type: application/json" \
+  -H "x-business-id: YOUR_BUSINESS_ID" \
+  -d '{"sessionId":"session-101","message":"Book me a haircut for tomorrow at 3 PM"}'
 ```
 
-Do not commit `.env`.
+---
 
-Use `.env.example` for public configuration.
+## 🗺️ Project Roadmap & Next Phases
 
-## License
+- [x] **Phase 1 — Core Backend (Complete)**: LangChain ReAct Agent, 9 DB Tools, Express 5, Prisma ORM, PostgreSQL, Multi-LLM support, Full REST CRUD Suite.
+- [ ] **Phase 2 — Frontend UI (Next.js)**: Customer chat widget, Business admin portal, Booking calendar view, Staff schedule manager.
+- [ ] **Phase 3 — Voice Agent Integration**: WebRTC / Speech-to-Text (STT) and Text-to-Speech (TTS) integration for live browser voice interaction.
+- [ ] **Phase 4 — Telephony & Phone Receptionist**: Twilio / Vonage SIP integration for automated phone booking calls.
+- [ ] **Phase 5 — Enterprise Ready**: Auth (Clerk / NextAuth), Rate limiting, Redis caching, Email/SMS notifications (Twilio / Resend), Webhook integration.
 
-MIT
+---
+
+## 📜 License
+
+Distributed under the [MIT License](LICENSE).
