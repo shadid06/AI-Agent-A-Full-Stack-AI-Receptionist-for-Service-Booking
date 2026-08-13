@@ -2,7 +2,9 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import { clerkMiddleware } from "@clerk/express";
 import { env } from "./config/env.js";
+import { authRouter } from "./modules/auth/auth.routes.js";
 import { aiRouter } from "./modules/ai/ai.routes.js";
 import { bookingRouter } from "./modules/booking/booking.routes.js";
 import { businessRouter } from "./modules/business/business.routes.js";
@@ -13,10 +15,12 @@ import { notFoundMiddleware } from "./middleware/not-found.middleware.js";
 
 export const app = express();
 
+app.use(clerkMiddleware());
 app.use(helmet());
 app.use(
   cors({
-    origin: env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
+    origin: env.CORS_ORIGIN.split(",").map((origin) => origin.trim()),
+    credentials: true
   })
 );
 app.use(express.json({ limit: "1mb" }));
@@ -31,6 +35,7 @@ app.get("/health", (_req, res) => {
   });
 });
 
+app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/ai", aiRouter);
 app.use("/api/v1/bookings", bookingRouter);
 app.use("/api/v1/businesses", businessRouter);

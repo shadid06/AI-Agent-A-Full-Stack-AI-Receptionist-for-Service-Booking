@@ -7,46 +7,56 @@ import {
   updateBookingSchema
 } from "./booking.schemas.js";
 import * as bookingService from "./booking.service.js";
-import { AppError } from "../../lib/errors.js";
-
-function businessId(req: Request): string {
-  const id = req.header("x-business-id");
-  if (!id) throw new AppError(400, "Missing x-business-id header");
-  return id;
-}
+import { resolveBusinessContext } from "../../lib/tenant.js";
 
 export async function searchServices(req: Request, res: Response) {
+  const { businessId } = await resolveBusinessContext(req, {
+    allowHeaderFallback: true
+  });
+
   const services = await bookingService.searchServices(
-    businessId(req),
+    businessId,
     typeof req.query.q === "string" ? req.query.q : undefined
   );
   res.json({ success: true, data: services });
 }
 
 export async function availability(req: Request, res: Response) {
+  const { businessId } = await resolveBusinessContext(req, {
+    allowHeaderFallback: true
+  });
   const input = availabilitySchema.parse(req.query);
-  const result = await bookingService.getAvailability(businessId(req), input);
+  const result = await bookingService.getAvailability(businessId, input);
   res.json({ success: true, data: result });
 }
 
 export async function create(req: Request, res: Response) {
+  const { businessId } = await resolveBusinessContext(req, {
+    allowHeaderFallback: true
+  });
   const input = createBookingSchema.parse(req.body);
-  const result = await bookingService.createBooking(businessId(req), input);
+  const result = await bookingService.createBooking(businessId, input);
   res.status(201).json({ success: true, data: result });
 }
 
 export async function get(req: Request, res: Response) {
+  const { businessId } = await resolveBusinessContext(req, {
+    allowHeaderFallback: true
+  });
   const result = await bookingService.getBooking(
-    businessId(req),
+    businessId,
     req.params.bookingId as string
   );
   res.json({ success: true, data: result });
 }
 
 export async function list(req: Request, res: Response) {
+  const { businessId } = await resolveBusinessContext(req, {
+    allowHeaderFallback: true
+  });
   const query = listBookingSchema.parse(req.query);
   const result = await bookingService.listBookings(
-    businessId(req),
+    businessId,
     query.date,
     query.status as BookingStatus | undefined
   );
@@ -54,9 +64,12 @@ export async function list(req: Request, res: Response) {
 }
 
 export async function update(req: Request, res: Response) {
+  const { businessId } = await resolveBusinessContext(req, {
+    allowHeaderFallback: true
+  });
   const input = updateBookingSchema.parse(req.body);
   const result = await bookingService.updateBooking(
-    businessId(req),
+    businessId,
     req.params.bookingId as string,
     input
   );
@@ -64,8 +77,11 @@ export async function update(req: Request, res: Response) {
 }
 
 export async function cancel(req: Request, res: Response) {
+  const { businessId } = await resolveBusinessContext(req, {
+    allowHeaderFallback: true
+  });
   const result = await bookingService.cancelBooking(
-    businessId(req),
+    businessId,
     req.params.bookingId as string
   );
   res.json({ success: true, data: result });

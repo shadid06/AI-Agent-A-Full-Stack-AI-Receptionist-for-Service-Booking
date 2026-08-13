@@ -1,16 +1,18 @@
 import type { Request, Response, NextFunction } from "express";
 import { chatSchema } from "./ai.schemas.js";
 import { chat } from "./ai.service.js";
+import { resolveBusinessContext } from "../../lib/tenant.js";
 import { AppError } from "../../lib/errors.js";
 
-export async function chatController(req: Request, res: Response, next: NextFunction) {
+export async function chatController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   try {
-    const businessId = req.header("x-business-id");
-
-    if (!businessId) {
-      throw new AppError(400, "Missing x-business-id header");
-    }
-
+    const { businessId } = await resolveBusinessContext(req, {
+      allowHeaderFallback: true
+    });
     const input = chatSchema.parse(req.body);
 
     const result = await chat({

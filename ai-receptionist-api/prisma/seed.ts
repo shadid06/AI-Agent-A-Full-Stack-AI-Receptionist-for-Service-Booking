@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   const business = await prisma.business.create({
     data: {
+      slug: "demo-wellness-care",
       name: "Demo Wellness & Care",
       industry: Industry.SPA,
       description: "Demo business for the AI Receptionist open-source project.",

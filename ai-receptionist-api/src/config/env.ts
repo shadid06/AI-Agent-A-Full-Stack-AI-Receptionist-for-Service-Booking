@@ -14,6 +14,8 @@ const envSchema = z.object({
   GEMINI_MODEL: z.string().default("gemini-2.5-flash"),
   OPENAI_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
+  CLERK_PUBLISHABLE_KEY: z.string().optional(),
+  CLERK_SECRET_KEY: z.string().optional(),
   DEFAULT_BUSINESS_ID: z.string().optional(),
   DEFAULT_TIMEZONE: z.string().default("Asia/Dhaka"),
   CORS_ORIGIN: z.string().default("http://localhost:3000")

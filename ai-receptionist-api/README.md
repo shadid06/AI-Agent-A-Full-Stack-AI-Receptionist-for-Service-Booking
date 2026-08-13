@@ -72,6 +72,81 @@ The AI Agent is equipped with **9 native LangChain tools** that bind directly to
 
 ---
 
+## SaaS Productization Blueprint
+
+This codebase already solves the core AI booking problem. The SaaS layer is what turns it into a sellable product.
+
+### What already exists
+
+- Multi-tenant business-aware data model
+- Real booking logic backed by PostgreSQL and Prisma
+- AI agent with validated tools for search, availability, create, update, cancel, and list operations
+- Conversation persistence for session memory
+
+### What still needs to become SaaS-ready
+
+- Authentication and workspace access control
+- Self-serve tenant onboarding
+- Role-based access control for owners, admins, staff, and viewers
+- Billing and subscriptions
+- Usage metering and quotas
+- Notification channels for email, SMS, and WhatsApp
+- Voice and phone reception
+- Operator dashboard and analytics
+
+### Recommended SaaS architecture
+
+```text
+Customers / Admins / Staff
+          |
+          v
+   Next.js SaaS Dashboard
+          |
+          +-------------------+
+          |                   |
+          v                   v
+   Auth + RBAC Layer      Public Booking / Voice / Chat APIs
+          |                   |
+          +---------+---------+
+                    v
+        SaaS Core API (Express now, scalable to modular services)
+                    |
+     +--------------+-------------------------------+
+     |              |               |               |
+     v              v               v               v
+ Multi-tenant DB  Billing/Usage   Notifications   AI Agent
+ (PostgreSQL)     (Stripe)        (Email/SMS/     (Gemini +
+                                   WhatsApp)       tools/memory)
+                    |
+                    v
+          Voice + Phone Orchestration
+```
+
+### Tenant model
+
+- `Business` is the tenant workspace
+- `User` owns identity
+- `Membership` maps a user to one or more businesses
+- Every operational table must stay scoped by `businessId`
+- Every API request should be authorized against the active business context
+
+### Core SaaS modules
+
+- `Auth`: sign-in, sign-up, password reset, invites, session management
+- `RBAC`: owner, admin, manager, receptionist, staff, viewer
+- `Billing`: plans, trial, subscription status, invoices, payment events
+- `Usage`: conversations, bookings, AI turns, voice minutes, SMS and WhatsApp counts
+- `Dashboard`: business profile, services, staff, schedules, bookings, analytics
+- `Notifications`: confirmations, reminders, reschedules, cancellations
+- `Voice`: browser voice receptionist and call flows
+- `Audit`: log sensitive actions and AI decisions
+
+### Product statement
+
+> I built a multi-tenant AI receptionist SaaS platform where autonomous AI agents use validated business tools to search availability, create, update, and cancel real bookings.
+
+---
+
 ## 💻 Tech Stack
 
 - **Runtime & Language**: Node.js (>=20.9.0), TypeScript 5.9
@@ -260,11 +335,18 @@ curl -X POST http://localhost:4000/api/v1/ai/chat \
 
 ## 🗺️ Project Roadmap & Next Phases
 
-- [x] **Phase 1 — Core Backend (Complete)**: LangChain ReAct Agent, 9 DB Tools, Express 5, Prisma ORM, PostgreSQL, Multi-LLM support, Full REST CRUD Suite.
-- [ ] **Phase 2 — Frontend UI (Next.js)**: Customer chat widget, Business admin portal, Booking calendar view, Staff schedule manager.
-- [ ] **Phase 3 — Voice Agent Integration**: WebRTC / Speech-to-Text (STT) and Text-to-Speech (TTS) integration for live browser voice interaction.
-- [ ] **Phase 4 — Telephony & Phone Receptionist**: Twilio / Vonage SIP integration for automated phone booking calls.
-- [ ] **Phase 5 — Enterprise Ready**: Auth (Clerk / NextAuth), Rate limiting, Redis caching, Email/SMS notifications (Twilio / Resend), Webhook integration.
+- [x] **Phase 1 - AI Agent**: current ReAct agent with real booking tools, memory, and validated DB actions.
+- [ ] **Phase 2 - Real Booking Tools**: harden booking workflows, tool contracts, auditability, and idempotency.
+- [ ] **Phase 3 - Authentication**: add user identity, sessions, invites, and role-based access control.
+- [ ] **Phase 4 - Multi-tenancy**: workspace onboarding, tenant isolation, business-level authorization, and data scoping.
+- [ ] **Phase 5 - Next.js Dashboard**: business portal for onboarding, services, staff, bookings, conversations, and analytics.
+- [ ] **Phase 6 - Subscription + Usage**: Stripe plans, trials, quotas, metering, invoices, and feature gating.
+- [ ] **Phase 7 - Voice Receptionist**: browser voice, STT/TTS, live handoff, and conversational call flows.
+- [ ] **Phase 8 - WhatsApp / Phone**: telephony, WhatsApp entry points, notifications, reminders, and transcript storage.
+
+### Execution Goal
+
+> Build a multi-tenant AI receptionist SaaS where autonomous AI agents use validated business tools to search availability, create, update, and cancel real bookings.
 
 ---
 

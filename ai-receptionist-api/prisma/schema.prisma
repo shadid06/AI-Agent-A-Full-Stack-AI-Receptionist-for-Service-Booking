@@ -43,27 +43,72 @@ enum StaffRole {
   OTHER
 }
 
-model Business {
-  id          String       @id @default(cuid())
-  name        String
-  industry    Industry
-  description String?
-  timezone    String       @default("Asia/Dhaka")
-  phone       String?
-  email       String?
-  address     String?
-  isActive    Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MANAGER
+  STAFF
+  VIEWER
+}
 
-  services    Service[]
-  staff       Staff[]
-  customers   Customer[]
-  bookings    Booking[]
+model User {
+  id         String       @id @default(cuid())
+  clerkUserId String      @unique
+  name       String
+  email      String?      @unique
+  imageUrl   String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  ownedBusinesses Business[] @relation("BusinessOwner")
+  memberships Membership[]
+
+  @@index([email])
+}
+
+model Business {
+  id                  String       @id @default(cuid())
+  slug                String       @unique
+  clerkOrganizationId  String?      @unique
+  ownerUserId         String?
+  name                String
+  industry            Industry
+  description         String?
+  timezone            String       @default("Asia/Dhaka")
+  phone               String?
+  email               String?
+  address             String?
+  isActive            Boolean      @default(true)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  owner         User?        @relation("BusinessOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  memberships   Membership[]
+  services      Service[]
+  staff         Staff[]
+  customers     Customer[]
+  bookings      Booking[]
   conversations Conversation[]
 
   @@index([industry])
   @@index([isActive])
+  @@index([ownerUserId])
+}
+
+model Membership {
+  id         String         @id @default(cuid())
+  businessId String
+  userId     String
+  role       MembershipRole @default(VIEWER)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
+  @@index([userId])
+  @@index([businessId, role])
 }
 
 model Service {
